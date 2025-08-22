@@ -114,8 +114,12 @@ def setup_qa_chain_from_text(documents_text, embeddings_model):
     llm = ChatGoogleGenerativeAI(model=LLM_MODEL_NAME, temperature=0.2)
     
     qa_chain = RetrievalQA.from_chain_type(
-        llm=llm, chain_type="stuff", retriever=db.as_ retriever(search_kwargs={"k": 4}),
-        chain_type_kwargs={"prompt": PROMPT}, return_source_documents=True
+        llm=llm, 
+        chain_type="stuff", 
+        # --- DÒNG ĐÃ SỬA LỖI ---
+        retriever=db.as_retriever(search_kwargs={"k": 4}),
+        chain_type_kwargs={"prompt": PROMPT}, 
+        return_source_documents=True
     )
     return qa_chain
 
