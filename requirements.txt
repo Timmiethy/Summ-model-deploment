@@ -1,8 +1,8 @@
 # requirements.txt
-
 streamlit
 torch
-simpletransformers
+transformers  # Use the main library instead of simpletransformers
+sentencepiece # Required for the T5 tokenizer
 langchain
 langchain-community
 langchain-google-genai
@@ -10,7 +10,5 @@ sentence-transformers
 faiss-cpu
 python-docx
 pdfplumber
-
-# --- Ghim các phiên bản để đảm bảo tương thích ---
 datasets==2.14.5
 pyarrow==14.0.1
