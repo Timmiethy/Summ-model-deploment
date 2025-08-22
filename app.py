@@ -4,7 +4,7 @@ import re
 import time
 import torch
 import docx
-from transformers import T5ForConditionalGeneration, T5Tokenizer
+from simpletransformers.t5 import T5Model
 
 # Các thư viện cho chức năng Hỏi-Đáp (RAG)
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -18,7 +18,6 @@ from langchain.prompts import PromptTemplate
 # PHẦN CẤU HÌNH VÀ TẢI MODEL
 # ==============================================================================
 
-# THAY ĐỔI: Hãy điền đúng ID model của bạn trên Hugging Face Hub
 SUMMARIZER_MODEL_PATH = 'Timmiethy/t5-legal-summarizer-final' 
 EMBEDDING_MODEL_NAME = "bkai-foundation-models/vietnamese-bi-encoder"
 LLM_MODEL_NAME = "gemini-1.5-flash-latest"
@@ -33,16 +32,16 @@ except (KeyError, FileNotFoundError):
 
 @st.cache_resource
 def load_summarizer_model():
-    """Tải tokenizer và model T5 trực tiếp từ Hugging Face."""
+    """Tải model T5 sử dụng SimpleTransformers."""
     st.info("Đang tải mô hình Tóm tắt văn bản... Vui lòng chờ.")
     try:
-        tokenizer = T5Tokenizer.from_pretrained(SUMMARIZER_MODEL_PATH)
-        model = T5ForConditionalGeneration.from_pretrained(SUMMARIZER_MODEL_PATH)
+        # Sử dụng use_cuda=False để đảm bảo tương thích trên môi trường CPU của Streamlit
+        model = T5Model("t5", SUMMARIZER_MODEL_PATH, use_cuda=False)
         st.success("Tải mô hình Tóm tắt thành công!")
-        return tokenizer, model # Trả về cả tokenizer và model
+        return model
     except Exception as e:
         st.error(f"Lỗi khi tải mô hình tóm tắt: {e}")
-        return None, None
+        return None
 
 @st.cache_resource
 def load_embedding_model():
@@ -77,8 +76,8 @@ def extract_key_sections(full_text: str) -> str:
         return full_text[start_index:]
     return full_text
 
-def summarize_text(tokenizer, model, clean_text):
-    """Hàm gọi model để tóm tắt, sử dụng thư viện transformers."""
+def summarize_text(model, clean_text):
+    """Hàm gọi model để tóm tắt, sử dụng SimpleTransformers."""
     if not clean_text.strip():
         return "Văn bản trống, không có gì để tóm tắt."
     
@@ -86,14 +85,12 @@ def summarize_text(tokenizer, model, clean_text):
     prefixed_text = "summarize: " + final_text
     
     with st.spinner('Mô hình đang tóm tắt...'):
-        input_ids = tokenizer.encode(prefixed_text, return_tensors="pt", max_length=1024, truncation=True)
-        summary_ids = model.generate(input_ids, max_length=256, num_beams=5, early_stopping=True)
-        summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+        summary = model.predict([prefixed_text])
         
-    return summary
+    return summary[0] if summary else "Không thể tạo tóm tắt."
 
 def setup_qa_chain_from_text(documents_text, embeddings_model):
-    """Hàm xây dựng hệ thống QA từ danh sách các đoạn văn bản."""
+    """Hàm xây dựng hệ thống QA."""
     if not GOOGLE_API_KEY:
         st.error("Không thể thiết lập chuỗi QA vì thiếu Google API Key.")
         return None
@@ -114,12 +111,8 @@ def setup_qa_chain_from_text(documents_text, embeddings_model):
     llm = ChatGoogleGenerativeAI(model=LLM_MODEL_NAME, temperature=0.2)
     
     qa_chain = RetrievalQA.from_chain_type(
-        llm=llm, 
-        chain_type="stuff", 
-        # --- DÒNG ĐÃ SỬA LỖI ---
-        retriever=db.as_retriever(search_kwargs={"k": 4}),
-        chain_type_kwargs={"prompt": PROMPT}, 
-        return_source_documents=True
+        llm=llm, chain_type="stuff", retriever=db.as_retriever(search_kwargs={"k": 4}),
+        chain_type_kwargs={"prompt": PROMPT}, return_source_documents=True
     )
     return qa_chain
 
@@ -132,7 +125,7 @@ st.title("⚖️ Trợ Lý Pháp Lý AI")
 st.write("Cung cấp bởi **Timmiethy** - Ứng dụng AI hỗ trợ tóm tắt và hỏi đáp văn bản pháp lý.")
 
 # Tải các model
-tokenizer, summarizer_model = load_summarizer_model()
+summarizer_model = load_summarizer_model()
 embeddings = load_embedding_model()
 
 tab1, tab2 = st.tabs(["📝 Tóm Tắt Văn Bản", "💬 Hỏi-Đáp Pháp Lý (RAG)"])
@@ -158,8 +151,8 @@ with tab1:
             st.text_area("Nội dung đã được trích lọc:", value=processed_text, height=250)
             
             if st.button("Tạo Tóm Tắt"):
-                if summarizer_model and tokenizer:
-                    summary_result = summarize_text(tokenizer, summarizer_model, processed_text)
+                if summarizer_model:
+                    summary_result = summarize_text(summarizer_model, processed_text)
                     st.subheader("Bản tóm tắt:")
                     st.write(summary_result)
                 else:
@@ -171,25 +164,20 @@ with tab1:
 
 # --- Tab 2: Hỏi-đáp ---
 with tab2:
+    # (Giữ nguyên code tab 2)
     st.header("Hỏi-Đáp Dựa Trên Tài Liệu")
     st.write("Tải lên một hoặc nhiều file văn bản (.txt) để làm cơ sở kiến thức, sau đó đặt câu hỏi.")
-
     uploaded_files_qa = st.file_uploader("Tải lên các file .txt của bạn", type="txt", accept_multiple_files=True)
-
     if uploaded_files_qa:
         documents_content = [file.read().decode("utf-8") for file in uploaded_files_qa]
         st.success(f"Đã tải lên và xử lý {len(uploaded_files_qa)} file.")
-        
-        # Sử dụng session_state để lưu trữ chuỗi QA, tránh build lại mỗi lần tương tác
         if 'qa_chain' not in st.session_state or st.session_state.get('last_uploaded_files') != [f.name for f in uploaded_files_qa]:
             with st.spinner("Đang xây dựng cơ sở tri thức từ tài liệu..."):
                 st.session_state.qa_chain = setup_qa_chain_from_text(documents_content, embeddings)
                 st.session_state.last_uploaded_files = [f.name for f in uploaded_files_qa]
-
         if 'qa_chain' in st.session_state and st.session_state.qa_chain:
             st.info("Hệ thống đã sẵn sàng. Hãy đặt câu hỏi của bạn.")
             question = st.text_input("Câu hỏi của bạn:")
-
             if question:
                 with st.spinner("Đang tìm kiếm câu trả lời..."):
                     result = st.session_state.qa_chain.invoke({"query": question})
