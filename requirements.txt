@@ -11,6 +11,6 @@ faiss-cpu
 python-docx
 pdfplumber
 
-# --- Thêm các dòng sau để sửa lỗi xung đột ---
-datasets>=2.10.0
-pyarrow>=10.0.0
+# --- Ghim các phiên bản để đảm bảo tương thích ---
+datasets==2.14.5
+pyarrow==14.0.1
