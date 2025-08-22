@@ -1,9 +1,12 @@
-# requirements.txt (Phiên bản linh hoạt cuối cùng)
-streamlit
-simpletransformers
-torch
-langchain
-langchain-google-genai
-sentence-transformers
-faiss-cpu
-python-docx
+streamlit==1.32.0
+simpletransformers==0.64.4
+torch==2.1.0
+transformers==4.35.2
+sentencepiece
+langchain==0.1.0
+langchain-google-genai==0.0.4
+sentence-transformers==2.2.2
+faiss-cpu==1.7.4
+python-docx==1.1.2
+pyarrow==14.0.1
+datasets==2.15.0
