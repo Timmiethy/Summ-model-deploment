@@ -1,3 +1,5 @@
+# requirements.txt
+
 streamlit
 torch
 simpletransformers
@@ -6,5 +8,9 @@ langchain-community
 langchain-google-genai
 sentence-transformers
 faiss-cpu
-python-docx # Thêm thư viện này nếu bạn định xử lý file .docx
-pdfplumber  # Thêm thư viện này nếu bạn định xử lý file .pdf
+python-docx
+pdfplumber
+
+# --- Thêm các dòng sau để sửa lỗi xung đột ---
+datasets>=2.10.0
+pyarrow>=10.0.0
