@@ -1,0 +1,10 @@
+streamlit
+torch
+simpletransformers
+langchain
+langchain-community
+langchain-google-genai
+sentence-transformers
+faiss-cpu
+python-docx # Thêm thư viện này nếu bạn định xử lý file .docx
+pdfplumber  # Thêm thư viện này nếu bạn định xử lý file .pdf
