@@ -1,14 +1,13 @@
-# requirements.txt
-streamlit
-torch
-transformers  # Use the main library instead of simpletransformers
-sentencepiece # Required for the T5 tokenizer
-langchain
-langchain-community
-langchain-google-genai
-sentence-transformers
-faiss-cpu
-python-docx
-pdfplumber
-datasets==2.14.5
-pyarrow==14.0.1
+# requirements.txt (Phiên bản chuẩn hóa)
+streamlit==1.35.0
+torch==2.2.2
+transformers==4.40.1
+sentencepiece==0.2.0
+langchain==0.1.16
+langchain-google-genai==0.1.0
+sentence-transformers==2.7.0
+faiss-cpu==1.8.0
+python-docx==1.1.2
+# Gói datasets và pyarrow là phụ thuộc của transformers
+# và sẽ được cài đặt với phiên bản tương thích.
+# Không cần chỉ định rõ ở đây để tránh xung đột.
